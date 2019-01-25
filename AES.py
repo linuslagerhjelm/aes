@@ -24,6 +24,25 @@ S_box = [
 ]
 
 
+def _nibbles(byte: int) -> tuple:
+    """
+    Returns the nibbles to the provided byte. I.e., a tuple where first value is an int corresponding
+    to the first four bits of the byte and the second value, the second halves of the bits.
+    :param byte: the byte to split
+    :return: tuple containing the first and second halves of bits as ints
+    """
+    b = list(bin(byte))[2:]
+    b = (['0'] * (len(b) % 2)) + b
+    first = "".join(b[0:int(len(b) / 2)])
+    second = "".join(b[int(len(b) / 2):])
+    return int(first, 2), int(second, 2)
+
+
+def _S(block):
+    b = block[0]
+    x, y = _nibbles(b)
+
+
 def _g(block):
     block = deque(block)
     block.rotate(-1)
@@ -42,10 +61,9 @@ def encrypt(input: bytes, key: bytes, mode: int = CBC) -> bytes:
     :param mode:
     :return:
     """
-    hex_key = [hex(c) for c in key]
-    key_rounds = __chunk(hex_key)
+    key_rounds = __chunk(list(key), 4)
 
-    return ''
+    return b''
 
 
 def decrypt():
