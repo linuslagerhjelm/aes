@@ -38,9 +38,18 @@ def _nibbles(byte: int) -> tuple:
     return int(first, 2), int(second, 2)
 
 
-def _S(block):
-    b = block[0]
-    x, y = _nibbles(b)
+def _substitute_bytes(block: list) -> list:
+    """
+    Performs the substitute bytes transformation described in the standard
+    :param block: the block to substitute
+    :return: the resulting block
+    """
+    output = []
+    for byte in block:
+        x, y = _nibbles(byte)
+        v = S_box[x][y]
+        output.append(v)
+    return output
 
 
 def _g(block):

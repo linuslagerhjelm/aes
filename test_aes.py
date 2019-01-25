@@ -15,3 +15,8 @@ class TestAES(TestCase):
         expected = (7, 3)
         actual = AES._nibbles(115)
         self.assertEqual(expected, actual)
+
+    def test_S(self):
+        expected = [0x87, 0xEC, 0x4A, 0x8C]
+        actual = AES._substitute_bytes([0xEA, 0x83, 0x5C, 0xF0])
+        self.assertEqual(expected, actual)
