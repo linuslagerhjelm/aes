@@ -168,7 +168,13 @@ def _mix_columns(state):
 
 
 def _add_roundkey(state, roundkey):
-    return
+    new_state = []
+    for r1, r2 in zip(state, roundkey):
+        new_col = []
+        for v1, v2 in zip(r1, r2):
+            new_col.append(v1 ^ v2)
+        new_state.append(new_col)
+    return new_state
 
 
 def _round(state, expanded_key):
