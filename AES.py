@@ -48,16 +48,6 @@ def __chunk(arr, n):
     return [arr[i * n:(i + 1) * n] for i in range((len(arr) + n - 1) // n)]
 
 
-def __mmap(m, f):
-    new_mat = []
-    for row in m:
-        new_row = []
-        for v in row:
-            new_row.append(f(v))
-        new_mat.append(new_row)
-    return new_mat
-
-
 def __sub_byte(b):
     b = hex(b)[2:]
     if len(b) == 1:
@@ -67,7 +57,13 @@ def __sub_byte(b):
 
 
 def _sub_bytes(state):
-    return __mmap(state, __sub_byte)
+    new_mat = []
+    for row in state:
+        new_row = []
+        for v in row:
+            new_row.append(__sub_byte(v))
+        new_mat.append(new_row)
+    return new_mat
 
 
 def __shift_row(row, n):
