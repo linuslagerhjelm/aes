@@ -1,4 +1,5 @@
 from collections import deque
+from functools import reduce
 
 ECB = 1
 CBC = 2
@@ -38,20 +39,6 @@ def _nibbles(byte: int) -> tuple:
     return int(first, 2), int(second, 2)
 
 
-def _substitute_bytes(block: list) -> list:
-    """
-    Performs the substitute bytes transformation described in the standard
-    :param block: the block to substitute
-    :return: the resulting block
-    """
-    output = []
-    for byte in block:
-        x, y = _nibbles(byte)
-        v = S_box[x][y]
-        output.append(v)
-    return output
-
-
 def _g(block):
     block = deque(block)
     block.rotate(-1)
@@ -59,6 +46,140 @@ def _g(block):
 
 def __chunk(arr, n):
     return [arr[i * n:(i + 1) * n] for i in range((len(arr) + n - 1) // n)]
+
+
+def __mmap(m, f):
+    new_mat = []
+    for row in m:
+        new_row = []
+        for v in row:
+            new_row.append(f(v))
+        new_mat.append(new_row)
+    return new_mat
+
+
+def __sub_byte(b):
+    b = hex(b)[2:]
+    if len(b) == 1:
+        b = '0' + b
+    row, col = list(b)
+    return S_box[int(row, 16)][int(col, 16)]
+
+
+def _sub_bytes(state):
+    return __mmap(state, __sub_byte)
+
+
+def __shift_row(row, n):
+    return row[-n:] + row[:-n]
+
+
+def _shift_rows(state):
+    new_state = []
+    n = 0
+    for row in state:
+        new_state.append(__shift_row(row, -n))
+        n += 1
+    return new_state
+
+
+def __bit_string(byte: int) -> str:
+    """
+    Converts a byte to its corresponding bit-string
+    :param byte: the byte to convert
+    :return: a string of 1 and 0:s
+    """
+    bitstring = bin(int(hex(byte), base=16))[2:]
+    pad = '0' * (8 % len(bitstring))
+    return pad + bitstring
+
+
+def __transpose(matr: list) -> list:
+    """
+    Performs a matrix transposition on a list of lists
+    :param matr: the list of lists to transpose
+    :return: a transposed list of lists
+    """
+    return list(map(list, zip(*matr)))
+
+
+def __xor(l1: str, l2: str) -> str:
+    """
+    Performs xor between two bit strings
+    :param l1: lhs string
+    :param l2: rhs string
+    :return: the result of lhs XOR rhs
+    """
+    return "".join(map(str, [int(int(a) != int(b)) for a, b in zip(l1, l2)]))
+
+
+fix_mat = [
+    [0x02, 0x03, 0x01, 0x01],
+    [0x01, 0x02, 0x03, 0x01],
+    [0x01, 0x01, 0x02, 0x03],
+    [0x03, 0x01, 0x01, 0x02],
+]
+
+
+def __mult_3(v: int) -> str:
+    """
+    Performs multiplication between v and the byte 0x03
+    :param v: the byte to multiply
+    :return: the result of v * 0x03 as a binary string
+    """
+    return __xor(__mult_2(v), __bit_string(v))
+
+
+def __mult_2(v: int) -> str:
+    """
+    Performs multiplication between v and the byte 0x02
+    :param v: the byte to multiply
+    :return: the result of v * 0x02 as a binary string
+    """
+    res = v << 1
+    if v & 0x80:
+        bs = __bit_string((res ^ 0x1B) & 0xFF)
+    else:
+        bs = __bit_string(res)
+
+    return bs
+
+
+def __mix_column(col):
+    new_col = []
+    for f in fix_mat:
+        bits = []
+        for v1, v2 in zip(f, col):
+            if v1 == 0x03:
+                bs = __mult_3(v2)
+            elif v1 == 0x02:
+                bs = __mult_2(v2)
+            else:
+                bs = __bit_string(v2)
+            bits.append(bs)
+
+        new_col.append(int(reduce(__xor, bits), 2))
+    return new_col
+
+
+def _mix_columns(state):
+    new_state = []
+    columns = __transpose(state)
+    for col in columns:
+        new_col = __mix_column(col)
+        new_state.append(new_col)
+    return __transpose(new_state)
+
+
+def _add_roundkey(state, roundkey):
+    return
+
+
+def _round(state, expanded_key):
+    state = _sub_bytes(state)
+    state = _shift_rows(state)
+    state = _mix_columns(state)
+    return _add_roundkey(state, expanded_key)
 
 
 def encrypt(input: bytes, key: bytes, mode: int = CBC) -> bytes:
@@ -70,7 +191,13 @@ def encrypt(input: bytes, key: bytes, mode: int = CBC) -> bytes:
     :param mode:
     :return:
     """
-    key_rounds = __chunk(list(key), 4)
+    # key_rounds = __chunk(list(key), 4)
+
+    # expanded_key = key_expansion()
+    # add_roundkey()
+    # for n in range(rounds - 1):
+    #   round(state, expanded_key[n])
+    # final_round(state, expanded_key[-1])
 
     return b''
 
