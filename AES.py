@@ -1,5 +1,5 @@
 from collections import deque
-from functools import reduce
+from itertools import chain
 
 ECB = 1
 CBC = 2
@@ -25,27 +25,25 @@ S_box = [
 ]
 
 
-def _nibbles(byte: int) -> tuple:
-    """
-    Returns the nibbles to the provided byte. I.e., a tuple where first value is an int corresponding
-    to the first four bits of the byte and the second value, the second halves of the bits.
-    :param byte: the byte to split
-    :return: tuple containing the first and second halves of bits as ints
-    """
-    b = list(bin(byte))[2:]
-    b = (['0'] * (len(b) % 2)) + b
-    first = "".join(b[0:int(len(b) / 2)])
-    second = "".join(b[int(len(b) / 2):])
-    return int(first, 2), int(second, 2)
+Rcon = (
+    0x01, 0x02, 0x04, 0x08, 0x10, 0x20,
+    0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8,
+    0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc,
+    0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4,
+    0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91,
+)
 
 
-def _g(block):
+def _g(block, rc):
     block = deque(block)
     block.rotate(-1)
+    block = [__sub_byte(b) for b in block]
+    return [block[0] ^ rc] + block[1:]
 
 
-def __chunk(arr, n):
-    return [arr[i * n:(i + 1) * n] for i in range((len(arr) + n - 1) // n)]
+def __split(a, n):
+    k, m = divmod(len(a), n)
+    return list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
 def __sub_byte(b):
@@ -70,13 +68,11 @@ def __shift_row(row, n):
     return row[-n:] + row[:-n]
 
 
-def _shift_rows(state):
-    new_state = []
-    n = 0
-    for row in state:
-        new_state.append(__shift_row(row, -n))
-        n += 1
-    return new_state
+def _shift_rows(s):
+    s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
+    s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
+    s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
+    return s
 
 
 def __bit_string(byte: int) -> str:
@@ -141,30 +137,21 @@ def __mult_2(v: int) -> str:
     return bs
 
 
-def __mix_column(col):
-    new_col = []
-    for f in fix_mat:
-        bits = []
-        for v1, v2 in zip(f, col):
-            if v1 == 0x03:
-                bs = __mult_3(v2)
-            elif v1 == 0x02:
-                bs = __mult_2(v2)
-            else:
-                bs = __bit_string(v2)
-            bits.append(bs)
+xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
-        new_col.append(int(reduce(__xor, bits), 2))
-    return new_col
+
+def __mix_column(col):
+    t = col[0] ^ col[1] ^ col[2] ^ col[3]
+    u = col[0]
+    col[0] ^= t ^ xtime(col[0] ^ col[1])
+    col[1] ^= t ^ xtime(col[1] ^ col[2])
+    col[2] ^= t ^ xtime(col[2] ^ col[3])
+    col[3] ^= t ^ xtime(col[3] ^ u)
+    return col
 
 
 def _mix_columns(state):
-    new_state = []
-    columns = __transpose(state)
-    for col in columns:
-        new_col = __mix_column(col)
-        new_state.append(new_col)
-    return __transpose(new_state)
+    return [__mix_column(column) for column in state]
 
 
 def _add_roundkey(state, roundkey):
@@ -181,27 +168,49 @@ def _round(state, expanded_key):
     state = _sub_bytes(state)
     state = _shift_rows(state)
     state = _mix_columns(state)
-    return _add_roundkey(state, expanded_key)
+    state = _add_roundkey(state, expanded_key)
+    return state
 
 
-def encrypt(input: bytes, key: bytes, mode: int = CBC) -> bytes:
+def _expand_key(key, n):
+    round_keys = [__split(list(key), 4)]
+    for i in range(n):
+        wi, wi1, wi2, wi3 = round_keys[i]
+        wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
+        wi5 = [a ^ b for a, b in zip(wi4, wi1)]
+        wi6 = [a ^ b for a, b in zip(wi5, wi2)]
+        wi7 = [a ^ b for a, b in zip(wi6, wi3)]
+        round_keys.append([wi4, wi5, wi6, wi7])
+    return round_keys
+
+
+def encrypt(indata: bytes, key: bytes, mode: int = CBC) -> tuple:
     """
     Encrypts a single block of data using the AES algorithm as
     described by: https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.197.pdf
-    :param input:
-    :param key:
-    :param mode:
-    :return:
+    :param input: The data to encrypt
+    :param key: The key to use. The length must be one of: 128, 192, 256
+    :param mode: The mode of operation to use, CBC and ECB are supported, defaults to CBC
+    :return: a tuple where the first element is the encrypted data.
+            Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
     """
-    # key_rounds = __chunk(list(key), 4)
 
-    # expanded_key = key_expansion()
-    # add_roundkey()
-    # for n in range(rounds - 1):
-    #   round(state, expanded_key[n])
-    # final_round(state, expanded_key[-1])
+    num_rounds = 10
+    state = __split(list(indata), 4)
 
-    return b''
+    key_rounds = _expand_key(key, num_rounds)
+    state = _add_roundkey(state, key_rounds[0])
+
+    for i in range(1, num_rounds):
+        state = _round(state, key_rounds[i])
+
+    state = _sub_bytes(state)
+    state = _shift_rows(state)
+    state = _add_roundkey(state, key_rounds[-1])
+
+    state = bytes(list(chain(*state)))
+
+    return state, None
 
 
 def decrypt():
