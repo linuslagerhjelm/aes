@@ -53,14 +53,47 @@ Rcon = (
 )
 
 
-def __split(a, n):
+xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
+
+
+def _split(a: list, n: int) -> list:
+    """
+    Splits a list into a list of n sub-lists. Assumes that len(a) % n == 0
+    :param a: the list to split
+    :param n: number of parts to split the list into
+    :return: a list containing the parts of the source list
+    """
     k, m = divmod(len(a), n)
     return list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
-def _g(block, rc):
+def _g(block: bytes, rc: bytes) -> list:
+    """
+    Performs the confusion step when expanding the key to roundkeys
+    :param block: the block to operate on
+    :param rc: the rcon value to use
+    :return: the transformed block
+    """
     block = [__sub_byte(b, S_box) for b in block[1:] + [block[0]]]
     return [block[0] ^ rc] + block[1:]
+
+
+def _expand_key(key: bytes, n: int) -> list:
+    """
+    Performs operations to expand the key into n round keys
+    :param key: the original key
+    :param n: number of rounds to expand the key to
+    :return: list containing the expanded keys
+    """
+    round_keys = [_split(list(key), 4)]
+    for i in range(n):
+        wi, wi1, wi2, wi3 = round_keys[i]
+        wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
+        wi5 = [a ^ b for a, b in zip(wi4, wi1)]
+        wi6 = [a ^ b for a, b in zip(wi5, wi2)]
+        wi7 = [a ^ b for a, b in zip(wi6, wi3)]
+        round_keys.append([wi4, wi5, wi6, wi7])
+    return round_keys
 
 
 def __sub_byte(b, box):
@@ -88,15 +121,27 @@ def _shift_rows(s):
     return s
 
 
-fix_mat = [
-    [0x02, 0x03, 0x01, 0x01],
-    [0x01, 0x02, 0x03, 0x01],
-    [0x01, 0x01, 0x02, 0x03],
-    [0x03, 0x01, 0x01, 0x02],
-]
+def _inv_shift_rows(s):
+    s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
+    s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
+    s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
+    return s
 
 
-xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
+def _round(state, round_key):
+    state = _sub_bytes(state, S_box)
+    state = _shift_rows(state)
+    state = _mix_columns(state)
+    state = _add_roundkey(state, round_key)
+    return state
+
+
+def _inv_round(state, round_key):
+    state = _inv_shift_rows(state)
+    state = _sub_bytes(state, Inv_S_box)
+    state = _add_roundkey(state, round_key)
+    state = _inv_mix_columns(state)
+    return state
 
 
 def __mix_column(col):
@@ -113,72 +158,6 @@ def _mix_columns(state):
     return [__mix_column(column) for column in state]
 
 
-def _add_roundkey(state, roundkey):
-    new_state = []
-    for r1, r2 in zip(state, roundkey):
-        new_col = []
-        for v1, v2 in zip(r1, r2):
-            new_col.append(v1 ^ v2)
-        new_state.append(new_col)
-    return new_state
-
-
-def _round(state, round_key):
-    state = _sub_bytes(state, S_box)
-    state = _shift_rows(state)
-    state = _mix_columns(state)
-    state = _add_roundkey(state, round_key)
-    return state
-
-
-def _expand_key(key, n):
-    round_keys = [__split(list(key), 4)]
-    for i in range(n):
-        wi, wi1, wi2, wi3 = round_keys[i]
-        wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
-        wi5 = [a ^ b for a, b in zip(wi4, wi1)]
-        wi6 = [a ^ b for a, b in zip(wi5, wi2)]
-        wi7 = [a ^ b for a, b in zip(wi6, wi3)]
-        round_keys.append([wi4, wi5, wi6, wi7])
-    return round_keys
-
-
-def encrypt(indata: bytes, key: bytes, mode: int = CBC) -> tuple:
-    """
-    Encrypts a single block of data using the AES algorithm as
-    described by: https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.197.pdf
-    :param input: The data to encrypt
-    :param key: The key to use. The length must be one of: 128, 192, 256
-    :param mode: The mode of operation to use, CBC and ECB are supported, defaults to CBC
-    :return: a tuple where the first element is the encrypted data.
-            Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
-    """
-
-    num_rounds = 10
-    state = __split(list(indata), 4)
-
-    key_rounds = _expand_key(key, num_rounds)
-    state = _add_roundkey(state, key_rounds[0])
-
-    for i in range(1, num_rounds):
-        state = _round(state, key_rounds[i])
-
-    state = _sub_bytes(state, S_box)
-    state = _shift_rows(state)
-    state = _add_roundkey(state, key_rounds[-1])
-
-    state = bytes(list(chain(*state)))
-
-    return state, None
-
-
-def _inv_shift_rows(s):
-    s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
-    s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
-    s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
-    return s
-
-
 def _inv_mix_columns(state):
     for s in state:
         u = xtime(xtime(s[0] ^ s[2]))
@@ -190,26 +169,65 @@ def _inv_mix_columns(state):
     return _mix_columns(state)
 
 
-def _inv_round(state, round_key):
-    state = _inv_shift_rows(state)
-    state = _sub_bytes(state, Inv_S_box)
-    state = _add_roundkey(state, round_key)
-    state = _inv_mix_columns(state)
-    return state
+def _add_roundkey(state, roundkey):
+    new_state = []
+    for r1, r2 in zip(state, roundkey):
+        new_col = []
+        for v1, v2 in zip(r1, r2):
+            new_col.append(v1 ^ v2)
+        new_state.append(new_col)
+    return new_state
 
 
-def decrypt(indata: bytes, key: bytes, mode: int = CBC):
-    num_rounds = 10
-    state = __split(list(indata), 4)
-    key_rounds = _expand_key(key, num_rounds)
-    state = _add_roundkey(state, key_rounds[-1])
+class AES:
+    def __init__(self, key: bytes, mode=CBC):
+        self.mode = mode
+        self.num_rounds = 10
+        self.round_keys = _expand_key(key, self.num_rounds)
 
-    for i in range(num_rounds - 1, 0, -1):
-        state = _inv_round(state, key_rounds[i])
+    def encrypt(self, data: bytes) -> tuple:
+        """
+        Encrypts a single block of data using the AES algorithm as
+        described by: https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.197.pdf.
+        Under CBC mode, a randomized IV is used and returned from this function along with the result of the
+        encryption, it is the responsibility of the user to keep track of the IV.
+        :param data: The data to encrypt
+        :return: a tuple where the first element is the encrypted data.
+                Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
+        """
 
-    state = _inv_shift_rows(state)
-    state = _sub_bytes(state, Inv_S_box)
-    state = _add_roundkey(state, key_rounds[0])
+        state = _split(list(data), 4)
+        state = _add_roundkey(state, self.round_keys[0])
 
-    state = bytes(list(chain(*state)))
-    return state
+        for i in range(1, self.num_rounds):
+            state = _round(state, self.round_keys[i])
+
+        state = _sub_bytes(state, S_box)
+        state = _shift_rows(state)
+        state = _add_roundkey(state, self.round_keys[-1])
+
+        state = bytes(list(chain(*state)))
+
+        return state, None
+
+    def decrypt(self, data: bytes, iv=None) -> bytes:
+        """
+        Decrypts data that were previously encrypted using the encrypt function of this instance. Of course, data
+        that were previously encrypted elsewhere could also be decrypted using this method, provided the same
+        configuration were used when encrypting.
+        :param data: The data to decrypt
+        :param iv: The initialization vector that were used for encryption (returned from encrypt function)
+        :return: The decrypted bytes
+        """
+        state = _split(list(data), 4)
+        state = _add_roundkey(state, self.round_keys[-1])
+
+        for i in range(self.num_rounds - 1, 0, -1):
+            state = _inv_round(state, self.round_keys[i])
+
+        state = _inv_shift_rows(state)
+        state = _sub_bytes(state, Inv_S_box)
+        state = _add_roundkey(state, self.round_keys[0])
+
+        state = bytes(list(chain(*state)))
+        return state

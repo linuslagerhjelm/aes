@@ -1,5 +1,6 @@
 from unittest import TestCase
-import AES
+from AES import AES
+from AES import _g, _sub_bytes, S_box, _shift_rows, _add_roundkey, _expand_key
 
 
 class TestAES(TestCase):
@@ -7,34 +8,34 @@ class TestAES(TestCase):
         expected = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])
         data = bytes([0x54, 0x77, 0x6F, 0x20, 0x4F, 0x6E, 0x65, 0x20, 0x4E, 0x69, 0x6E, 0x65, 0x20, 0x54, 0x77, 0x6F])
         key = bytes([0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75])
-        actual, _ = AES.encrypt(data, key)
+        actual, _ = AES(key).encrypt(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_encryption_spec(self):
         data = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f'))
         expected = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
-        actual, _ = AES.encrypt(data, key)
+        actual, _ = AES(key).encrypt(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_decryption(self):
         data = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])
         key = bytes([0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75])
         expected = bytes([0x54, 0x77, 0x6F, 0x20, 0x4F, 0x6E, 0x65, 0x20, 0x4E, 0x69, 0x6E, 0x65, 0x20, 0x54, 0x77, 0x6F])
-        actual = AES.decrypt(data, key)
+        actual = AES(key).decrypt(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_decryption_spec(self):
         data = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f'))
         expected = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
-        actual = AES.decrypt(data, key)
+        actual = AES(key).decrypt(data)
         self.assertEqual(expected, actual)
 
     def test_g(self):
         w = [0x67, 0x20, 0x46, 0x75]
         expected = [0xB6, 0x5A, 0x9D, 0x85]
-        actual = AES._g(w, 0x01)
+        actual = _g(w, 0x01)
         self.assertEqual(expected, actual)
 
     def test_sub_bytes(self):
@@ -50,7 +51,7 @@ class TestAES(TestCase):
             [0xAB, 0x30, 0xAF, 0xC7],
             [0x20, 0xCB, 0x2B, 0xA2],
         ]
-        actual = AES._sub_bytes(state, AES.S_box)
+        actual = _sub_bytes(state, S_box)
         self.assertEqual(expected, actual)
 
     def test_shift_rows(self):
@@ -66,7 +67,7 @@ class TestAES(TestCase):
             [205, 112, 183, 81],
             [186, 202, 208, 231],
         ]
-        actual = AES._shift_rows(state)
+        actual = _shift_rows(state)
         self.assertEqual(expected, actual)
 
     def test_add_roundkey(self):
@@ -89,7 +90,7 @@ class TestAES(TestCase):
             [0x08, 0x1C, 0xE2, 0xDF],
             [0x8B, 0xBA, 0xE8, 0xCE],
         ]
-        actual = AES._add_roundkey(state, round_key)
+        actual = _add_roundkey(state, round_key)
         self.assertEqual(expected, actual)
 
     def test_expand_key(self):
@@ -107,6 +108,6 @@ class TestAES(TestCase):
             [[0xBF, 0xE2, 0xBF, 0x90], [0x45, 0x59, 0xFA, 0xB2], [0xA1, 0x64, 0x80, 0xB4], [0xF7, 0xF1, 0xCB, 0xD8]],
             [[0x28, 0xFD, 0xDE, 0xF8], [0x6D, 0xA4, 0x24, 0x4A], [0xCC, 0xC0, 0xA4, 0xFE], [0x3B, 0x31, 0x6F, 0x26]],
         ]
-        actual = AES._expand_key(key, 10)
+        actual = _expand_key(key, 10)
         self.assertEqual(expected, actual)
 
