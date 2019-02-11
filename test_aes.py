@@ -50,7 +50,7 @@ class TestAES(TestCase):
             [0xAB, 0x30, 0xAF, 0xC7],
             [0x20, 0xCB, 0x2B, 0xA2],
         ]
-        actual = AES._sub_bytes(state)
+        actual = AES._sub_bytes(state, AES.S_box)
         self.assertEqual(expected, actual)
 
     def test_shift_rows(self):

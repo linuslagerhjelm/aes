@@ -1,4 +1,3 @@
-from collections import deque
 from itertools import chain
 
 ECB = 1
@@ -54,32 +53,30 @@ Rcon = (
 )
 
 
-def _g(block, rc):
-    block = deque(block)
-    block.rotate(-1)
-    block = [__sub_byte(b) for b in block]
-    return [block[0] ^ rc] + block[1:]
-
-
 def __split(a, n):
     k, m = divmod(len(a), n)
     return list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
-def __sub_byte(b):
+def _g(block, rc):
+    block = [__sub_byte(b, S_box) for b in block[1:] + [block[0]]]
+    return [block[0] ^ rc] + block[1:]
+
+
+def __sub_byte(b, box):
     b = hex(b)[2:]
     if len(b) == 1:
         b = '0' + b
     row, col = list(b)
-    return S_box[int(row, 16)][int(col, 16)]
+    return box[int(row, 16)][int(col, 16)]
 
 
-def _sub_bytes(state):
+def _sub_bytes(state, box):
     new_mat = []
     for row in state:
         new_row = []
         for v in row:
-            new_row.append(__sub_byte(v))
+            new_row.append(__sub_byte(v, box))
         new_mat.append(new_row)
     return new_mat
 
@@ -127,7 +124,7 @@ def _add_roundkey(state, roundkey):
 
 
 def _round(state, round_key):
-    state = _sub_bytes(state)
+    state = _sub_bytes(state, S_box)
     state = _shift_rows(state)
     state = _mix_columns(state)
     state = _add_roundkey(state, round_key)
@@ -166,7 +163,7 @@ def encrypt(indata: bytes, key: bytes, mode: int = CBC) -> tuple:
     for i in range(1, num_rounds):
         state = _round(state, key_rounds[i])
 
-    state = _sub_bytes(state)
+    state = _sub_bytes(state, S_box)
     state = _shift_rows(state)
     state = _add_roundkey(state, key_rounds[-1])
 
@@ -182,39 +179,20 @@ def _inv_shift_rows(s):
     return s
 
 
-def __inv_sub_byte(b):
-    b = hex(b)[2:]
-    if len(b) == 1:
-        b = '0' + b
-    row, col = list(b)
-    return Inv_S_box[int(row, 16)][int(col, 16)]
-
-
-def _inv_sub_bytes(state):
-    new_mat = []
-    for row in state:
-        new_row = []
-        for v in row:
-            new_row.append(__inv_sub_byte(v))
-        new_mat.append(new_row)
-    return new_mat
-
-
 def _inv_mix_columns(state):
-    for i in range(4):
-        u = xtime(xtime(state[i][0] ^ state[i][2]))
-        v = xtime(xtime(state[i][1] ^ state[i][3]))
-        state[i][0] ^= u
-        state[i][1] ^= v
-        state[i][2] ^= u
-        state[i][3] ^= v
-
+    for s in state:
+        u = xtime(xtime(s[0] ^ s[2]))
+        v = xtime(xtime(s[1] ^ s[3]))
+        s[0] ^= u
+        s[1] ^= v
+        s[2] ^= u
+        s[3] ^= v
     return _mix_columns(state)
 
 
 def _inv_round(state, round_key):
     state = _inv_shift_rows(state)
-    state = _inv_sub_bytes(state)
+    state = _sub_bytes(state, Inv_S_box)
     state = _add_roundkey(state, round_key)
     state = _inv_mix_columns(state)
     return state
@@ -230,7 +208,7 @@ def decrypt(indata: bytes, key: bytes, mode: int = CBC):
         state = _inv_round(state, key_rounds[i])
 
     state = _inv_shift_rows(state)
-    state = _inv_sub_bytes(state)
+    state = _sub_bytes(state, Inv_S_box)
     state = _add_roundkey(state, key_rounds[0])
 
     state = bytes(list(chain(*state)))
