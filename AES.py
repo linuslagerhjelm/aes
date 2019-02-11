@@ -84,45 +84,11 @@ def _sub_bytes(state):
     return new_mat
 
 
-def __shift_row(row, n):
-    return row[-n:] + row[:-n]
-
-
 def _shift_rows(s):
     s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
     s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
     return s
-
-
-def __bit_string(byte: int) -> str:
-    """
-    Converts a byte to its corresponding bit-string
-    :param byte: the byte to convert
-    :return: a string of 1 and 0:s
-    """
-    bitstring = bin(int(hex(byte), base=16))[2:]
-    pad = '0' * (8 % len(bitstring))
-    return pad + bitstring
-
-
-def __transpose(matr: list) -> list:
-    """
-    Performs a matrix transposition on a list of lists
-    :param matr: the list of lists to transpose
-    :return: a transposed list of lists
-    """
-    return list(map(list, zip(*matr)))
-
-
-def __xor(l1: str, l2: str) -> str:
-    """
-    Performs xor between two bit strings
-    :param l1: lhs string
-    :param l2: rhs string
-    :return: the result of lhs XOR rhs
-    """
-    return "".join(map(str, [int(int(a) != int(b)) for a, b in zip(l1, l2)]))
 
 
 fix_mat = [
@@ -131,30 +97,6 @@ fix_mat = [
     [0x01, 0x01, 0x02, 0x03],
     [0x03, 0x01, 0x01, 0x02],
 ]
-
-
-def __mult_3(v: int) -> str:
-    """
-    Performs multiplication between v and the byte 0x03
-    :param v: the byte to multiply
-    :return: the result of v * 0x03 as a binary string
-    """
-    return __xor(__mult_2(v), __bit_string(v))
-
-
-def __mult_2(v: int) -> str:
-    """
-    Performs multiplication between v and the byte 0x02
-    :param v: the byte to multiply
-    :return: the result of v * 0x02 as a binary string
-    """
-    res = v << 1
-    if v & 0x80:
-        bs = __bit_string((res ^ 0x1B) & 0xFF)
-    else:
-        bs = __bit_string(res)
-
-    return bs
 
 
 xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
