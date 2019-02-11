@@ -1,6 +1,6 @@
 from unittest import TestCase
 from AES import AES
-from AES import _g, _sub_bytes, S_box, _shift_rows, _add_roundkey, _expand_key
+from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key
 
 
 class TestAES(TestCase):
@@ -90,7 +90,7 @@ class TestAES(TestCase):
             [0x08, 0x1C, 0xE2, 0xDF],
             [0x8B, 0xBA, 0xE8, 0xCE],
         ]
-        actual = _add_roundkey(state, round_key)
+        actual = _add_round_key(state, round_key)
         self.assertEqual(expected, actual)
 
     def test_expand_key(self):

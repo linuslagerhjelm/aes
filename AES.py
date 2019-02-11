@@ -96,7 +96,13 @@ def _expand_key(key: bytes, n: int) -> list:
     return round_keys
 
 
-def __sub_byte(b, box):
+def __sub_byte(b: int, box: list) -> bytes:
+    """
+    Performs the substitution from one byte to another from the provided S-box
+    :param b: the byte to substitute
+    :param box: the box to pick substitution values from
+    :return: the substituted byte
+    """
     b = hex(b)[2:]
     if len(b) == 1:
         b = '0' + b
@@ -114,37 +120,64 @@ def _sub_bytes(state, box):
     return new_mat
 
 
-def _shift_rows(s):
+def _shift_rows(s: list) -> list:
+    """
+    Performs the shift rows transformation as described in the standard
+    :param s: the state matrix
+    :return: the new state matrix with shifted rows
+    """
     s[0][1], s[1][1], s[2][1], s[3][1] = s[1][1], s[2][1], s[3][1], s[0][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
     s[0][3], s[1][3], s[2][3], s[3][3] = s[3][3], s[0][3], s[1][3], s[2][3]
     return s
 
 
-def _inv_shift_rows(s):
+def _inv_shift_rows(s: list) -> list:
+    """
+    Performs the inverted shift rows transformation as described in the standard
+    :param s: the state matrix
+    :return: the new state matrix with shifted rows
+    """
     s[0][1], s[1][1], s[2][1], s[3][1] = s[3][1], s[0][1], s[1][1], s[2][1]
     s[0][2], s[1][2], s[2][2], s[3][2] = s[2][2], s[3][2], s[0][2], s[1][2]
     s[0][3], s[1][3], s[2][3], s[3][3] = s[1][3], s[2][3], s[3][3], s[0][3]
     return s
 
 
-def _round(state, round_key):
+def _round(state: list, round_key: list) -> list:
+    """
+    Performs a complete round over a block using the provided roundkey
+    :param state: the state matrix before the round transformations
+    :param round_key: the round key to use for this round
+    :return: state matrix after the round transformations have been applied
+    """
     state = _sub_bytes(state, S_box)
     state = _shift_rows(state)
     state = _mix_columns(state)
-    state = _add_roundkey(state, round_key)
+    state = _add_round_key(state, round_key)
     return state
 
 
-def _inv_round(state, round_key):
+def _inv_round(state: list, round_key: list) -> list:
+    """
+    Performs a complete inverse round over a block using the provided roundkey
+    :param state: the state matrix before the inverse round transformations
+    :param round_key: the round key to use for this round
+    :return: state matrix after the inverse round transformations have been applied
+    """
     state = _inv_shift_rows(state)
     state = _sub_bytes(state, Inv_S_box)
-    state = _add_roundkey(state, round_key)
+    state = _add_round_key(state, round_key)
     state = _inv_mix_columns(state)
     return state
 
 
-def __mix_column(col):
+def __mix_column(col: list) -> list:
+    """
+    Mixes a single column
+    :param state: The column to mix
+    :return: The mixed column
+    """
     t = col[0] ^ col[1] ^ col[2] ^ col[3]
     u = col[0]
     col[0] ^= t ^ xtime(col[0] ^ col[1])
@@ -154,11 +187,21 @@ def __mix_column(col):
     return col
 
 
-def _mix_columns(state):
+def _mix_columns(state: list) -> list:
+    """
+    Performs the mix column transformation as described by the standard.
+    :param state: The current state
+    :return: The state with mixed columns
+    """
     return [__mix_column(column) for column in state]
 
 
-def _inv_mix_columns(state):
+def _inv_mix_columns(state: list) -> list:
+    """
+    Performs the inverse mix column transformation as described by the standard.
+    :param state: The current state
+    :return: The state with mixed columns
+    """
     for s in state:
         u = xtime(xtime(s[0] ^ s[2]))
         v = xtime(xtime(s[1] ^ s[3]))
@@ -169,9 +212,15 @@ def _inv_mix_columns(state):
     return _mix_columns(state)
 
 
-def _add_roundkey(state, roundkey):
+def _add_round_key(state: list, round_key: list) -> list:
+    """
+    Applies the current round key to the state matrix.
+    :param state: the current state matrix
+    :param round_key: the current round key
+    :return: the new state after the round key has been applied
+    """
     new_state = []
-    for r1, r2 in zip(state, roundkey):
+    for r1, r2 in zip(state, round_key):
         new_col = []
         for v1, v2 in zip(r1, r2):
             new_col.append(v1 ^ v2)
@@ -197,14 +246,14 @@ class AES:
         """
 
         state = _split(list(data), 4)
-        state = _add_roundkey(state, self.round_keys[0])
+        state = _add_round_key(state, self.round_keys[0])
 
         for i in range(1, self.num_rounds):
             state = _round(state, self.round_keys[i])
 
         state = _sub_bytes(state, S_box)
         state = _shift_rows(state)
-        state = _add_roundkey(state, self.round_keys[-1])
+        state = _add_round_key(state, self.round_keys[-1])
 
         state = bytes(list(chain(*state)))
 
@@ -220,14 +269,14 @@ class AES:
         :return: The decrypted bytes
         """
         state = _split(list(data), 4)
-        state = _add_roundkey(state, self.round_keys[-1])
+        state = _add_round_key(state, self.round_keys[-1])
 
         for i in range(self.num_rounds - 1, 0, -1):
             state = _inv_round(state, self.round_keys[i])
 
         state = _inv_shift_rows(state)
         state = _sub_bytes(state, Inv_S_box)
-        state = _add_roundkey(state, self.round_keys[0])
+        state = _add_round_key(state, self.round_keys[0])
 
         state = bytes(list(chain(*state)))
         return state
