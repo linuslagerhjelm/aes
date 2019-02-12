@@ -1,6 +1,6 @@
 from unittest import TestCase
 from AES import AES
-from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _pad_data
+from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _pad_data, ECB
 
 
 class TestAES(TestCase):
@@ -127,4 +127,11 @@ class TestAES(TestCase):
         data = b''
         expected = b'\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10'
         actual = _pad_data(data)
+        self.assertEqual(expected, actual)
+
+    def test_pad_and_encrypt_single_block_ECB(self):
+        key = b'abcdefghijklmnop'
+        data = b'abcdefghijklmno'
+        expected = b'\xd7={E2\x9df\xf7\xfe\xb5\xa5\x97\x1c\xaex\xac'
+        actual, _ = AES(key, ECB).encrypt(data)
         self.assertEqual(expected, actual)
