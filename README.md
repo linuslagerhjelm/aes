@@ -24,6 +24,6 @@ plain_text = aes.decrypt(cipher_text, iv)
  - ~~128 bit keys~~
  - 192 bit keys
  - 256 bit keys
- - ECB Mode
+ - ~~ECB Mode~~
  - CBC Mode
- - PKCS7 Padding
+ - ~~PKCS7 Padding~~
