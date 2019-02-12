@@ -1,3 +1,4 @@
+from typing import List, Union
 from itertools import chain
 
 ECB = 1
@@ -56,7 +57,7 @@ Rcon = (
 xtime = lambda a: (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 
-def _split(a: list, n: int) -> list:
+def _split(a: List[bytes], n: int) -> List[List[bytes]]:
     """
     Splits a list into a list of n sub-lists. Assumes that len(a) % n == 0
     :param a: the list to split
@@ -67,7 +68,7 @@ def _split(a: list, n: int) -> list:
     return list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
 
 
-def _g(block: bytes, rc: bytes) -> list:
+def _g(block: List[int], rc: bytes) -> List[bytes]:
     """
     Performs the confusion step when expanding the key to roundkeys
     :param block: the block to operate on
@@ -78,7 +79,7 @@ def _g(block: bytes, rc: bytes) -> list:
     return [block[0] ^ rc] + block[1:]
 
 
-def _expand_key(key: bytes, n: int) -> list:
+def _expand_key(key: bytes, n: int) -> List[Union[List[List[int]], List[list]]]:
     """
     Performs operations to expand the key into n round keys
     :param key: the original key
@@ -96,7 +97,7 @@ def _expand_key(key: bytes, n: int) -> list:
     return round_keys
 
 
-def __sub_byte(b: int, box: list) -> bytes:
+def __sub_byte(b: int, box: List[List[bytes]]) -> bytes:
     """
     Performs the substitution from one byte to another from the provided S-box
     :param b: the byte to substitute
@@ -120,7 +121,7 @@ def _sub_bytes(state, box):
     return new_mat
 
 
-def _shift_rows(s: list) -> list:
+def _shift_rows(s: List[List[bytes]]) -> List[List[bytes]]:
     """
     Performs the shift rows transformation as described in the standard
     :param s: the state matrix
@@ -132,7 +133,7 @@ def _shift_rows(s: list) -> list:
     return s
 
 
-def _inv_shift_rows(s: list) -> list:
+def _inv_shift_rows(s: List[List[bytes]]) -> List[List[bytes]]:
     """
     Performs the inverted shift rows transformation as described in the standard
     :param s: the state matrix
@@ -144,7 +145,7 @@ def _inv_shift_rows(s: list) -> list:
     return s
 
 
-def _round(state: list, round_key: list) -> list:
+def _round(state: List[List[bytes]], round_key: List[Union[List[List[int]], List[list]]]) -> List[List[int]]:
     """
     Performs a complete round over a block using the provided roundkey
     :param state: the state matrix before the round transformations
@@ -158,7 +159,7 @@ def _round(state: list, round_key: list) -> list:
     return state
 
 
-def _inv_round(state: list, round_key: list) -> list:
+def _inv_round(state: List[List[bytes]], round_key: List[Union[List[List[int]], List[list]]]) -> List[List[int]]:
     """
     Performs a complete inverse round over a block using the provided roundkey
     :param state: the state matrix before the inverse round transformations
@@ -172,7 +173,7 @@ def _inv_round(state: list, round_key: list) -> list:
     return state
 
 
-def __mix_column(col: list) -> list:
+def __mix_column(col: List[bytes]) -> List[bytes]:
     """
     Mixes a single column
     :param state: The column to mix
@@ -187,7 +188,7 @@ def __mix_column(col: list) -> list:
     return col
 
 
-def _mix_columns(state: list) -> list:
+def _mix_columns(state:  List[List[bytes]]) -> list:
     """
     Performs the mix column transformation as described by the standard.
     :param state: The current state
@@ -196,7 +197,7 @@ def _mix_columns(state: list) -> list:
     return [__mix_column(column) for column in state]
 
 
-def _inv_mix_columns(state: list) -> list:
+def _inv_mix_columns(state:  List[List[bytes]]) -> list:
     """
     Performs the inverse mix column transformation as described by the standard.
     :param state: The current state
@@ -212,7 +213,7 @@ def _inv_mix_columns(state: list) -> list:
     return _mix_columns(state)
 
 
-def _add_round_key(state: list, round_key: list) -> list:
+def _add_round_key(state: List[List[bytes]], round_key: List[Union[List[List[int]], List[list]]]) -> list:
     """
     Applies the current round key to the state matrix.
     :param state: the current state matrix
