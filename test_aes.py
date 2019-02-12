@@ -8,28 +8,28 @@ class TestAES(TestCase):
         expected = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])
         data = bytes([0x54, 0x77, 0x6F, 0x20, 0x4F, 0x6E, 0x65, 0x20, 0x4E, 0x69, 0x6E, 0x65, 0x20, 0x54, 0x77, 0x6F])
         key = bytes([0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75])
-        actual, _ = AES(key)._encrypt_single_block(data)
+        actual = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_encryption_spec(self):
         data = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f'))
         expected = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
-        actual, _ = AES(key)._encrypt_single_block(data)
+        actual = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_decryption(self):
         data = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])
         key = bytes([0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75])
         expected = bytes([0x54, 0x77, 0x6F, 0x20, 0x4F, 0x6E, 0x65, 0x20, 0x4E, 0x69, 0x6E, 0x65, 0x20, 0x54, 0x77, 0x6F])
-        actual = AES(key).decrypt(data)
+        actual = AES(key)._decrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_decryption_spec(self):
         data = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f'))
         expected = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
-        actual = AES(key).decrypt(data)
+        actual = AES(key)._decrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_g(self):
@@ -134,4 +134,18 @@ class TestAES(TestCase):
         data = b'abcdefghijklmno'
         expected = b'\xd7={E2\x9df\xf7\xfe\xb5\xa5\x97\x1c\xaex\xac'
         actual, _ = AES(key, ECB).encrypt(data)
+        self.assertEqual(expected, actual)
+
+    def test_encrypt_multiple_blocks_ECB(self):
+        key = b'abcdefghijklmnop'
+        data = b'abcdefghijklmnop'
+        expected = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
+        actual, _ = AES(key, ECB).encrypt(data)
+        self.assertEqual(expected, actual)
+
+    def test_decrypt_multiple_blocks_ECB(self):
+        key = b'abcdefghijklmnop'
+        data = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
+        expected = b'abcdefghijklmnop'
+        actual = AES(key, ECB).decrypt(data)
         self.assertEqual(expected, actual)

@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Any, Generator
 from itertools import chain
 
 ECB = 1
@@ -66,6 +66,16 @@ def _split(a: List[bytes], n: int) -> List[List[bytes]]:
     """
     k, m = divmod(len(a), n)
     return list(a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n))
+
+
+def _chunk(l: List[Any], n: int) -> Generator:
+    """
+    Chunks the provided list into sub-lists, each containing n items. Assumes that len(l) % n == 0
+    :param l: the list to chunk
+    :param n: number of elements in each chunk
+    """
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
 
 
 def _g(block: List[int], rc: bytes) -> List[bytes]:
@@ -241,10 +251,21 @@ def _pad_data(data: bytes, n: int = 16) -> bytes:
     return data + bytes([pad_len] * pad_len)
 
 
+def _unpad_data(data: bytes) -> bytes:
+    """
+    Removes padding from the data according to PKCS7 standard and returns data such that
+    len(new_data) = len(data) - pad_len
+    :param data: the data to unpad
+    :return: the original data without padding
+    """
+    return data[:-data[-1]]
+
+
 class AES:
     def __init__(self, key: bytes, mode=CBC):
         self.mode = mode
         self.num_rounds = 10
+        self.block_length = 16
         self.round_keys = _expand_key(key, self.num_rounds)
 
     def encrypt(self, data: bytes) -> tuple:
@@ -259,14 +280,16 @@ class AES:
         """
 
         state = _pad_data(data)
-        return self._encrypt_single_block(state)
+        blocks = list(_chunk(list(state), self.block_length))
 
-    def _encrypt_single_block(self, data: bytes) -> tuple:
+        return b''.join([self._encrypt_single_block(block) for block in blocks]), None
+
+    def _encrypt_single_block(self, data: bytes) -> bytes:
         """
         Performs encryption of a single block of the AES algorithm, unlike the encrypt method which will encrypt at
         least two blocks as it adds padding
         :param data:
-        :return:
+        :return: encrypted block
         """
         state = _split(list(data), 4)
         state = _add_round_key(state, self.round_keys[0])
@@ -280,7 +303,7 @@ class AES:
 
         state = bytes(list(chain(*state)))
 
-        return state, None
+        return state
 
     def decrypt(self, data: bytes, iv=None) -> bytes:
         """
@@ -290,6 +313,17 @@ class AES:
         :param data: The data to decrypt
         :param iv: The initialization vector that were used for encryption (returned from encrypt function)
         :return: The decrypted bytes
+        """
+        blocks = list(_chunk(list(data), self.block_length))
+        decrypted = b''.join([self._decrypt_single_block(block) for block in blocks])
+        return _unpad_data(decrypted)
+
+    def _decrypt_single_block(self, data: bytes, iv=None) -> bytes:
+        """
+        Performs decryption of a single block of the AES algorithm, unlike the decrypt method which will
+        assume that there are padding at the end of the last block.
+        :param data: the data to decrypt
+        :return: decrypted block
         """
         state = _split(list(data), 4)
         state = _add_round_key(state, self.round_keys[-1])
