@@ -1,6 +1,6 @@
 from unittest import TestCase
 from AES import AES
-from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key
+from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _pad_data
 
 
 class TestAES(TestCase):
@@ -8,14 +8,14 @@ class TestAES(TestCase):
         expected = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])
         data = bytes([0x54, 0x77, 0x6F, 0x20, 0x4F, 0x6E, 0x65, 0x20, 0x4E, 0x69, 0x6E, 0x65, 0x20, 0x54, 0x77, 0x6F])
         key = bytes([0x54, 0x68, 0x61, 0x74, 0x73, 0x20, 0x6D, 0x79, 0x20, 0x4B, 0x75, 0x6E, 0x67, 0x20, 0x46, 0x75])
-        actual, _ = AES(key).encrypt(data)
+        actual, _ = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_encryption_spec(self):
         data = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f'))
         expected = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
-        actual, _ = AES(key).encrypt(data)
+        actual, _ = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
 
     def test_sunny_day_decryption(self):
@@ -111,3 +111,20 @@ class TestAES(TestCase):
         actual = _expand_key(key, 10)
         self.assertEqual(expected, actual)
 
+    def test_pad_incomplete_block(self):
+        data = b'abcdefghijklmno'
+        expected = b'abcdefghijklmno\x01'
+        actual = _pad_data(data)
+        self.assertEqual(expected, actual)
+
+    def test_pad_complete_block(self):
+        data = b'abcdefghijklmnop'
+        expected = b'abcdefghijklmnop\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10'
+        actual = _pad_data(data)
+        self.assertEqual(expected, actual)
+
+    def test_pad_empty_block(self):
+        data = b''
+        expected = b'\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10'
+        actual = _pad_data(data)
+        self.assertEqual(expected, actual)

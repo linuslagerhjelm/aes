@@ -228,6 +228,18 @@ def _add_round_key(state: list, round_key: list) -> list:
     return new_state
 
 
+def _pad_data(data: bytes, n: int = 16) -> bytes:
+    """
+    Adds padding to the data according to the PKCS7 standard.
+    Note that at least one byte of padding is guaranteed to be added.
+    :param data: the data to pad
+    :param n: the length to pad the data to, defaults to 16
+    :return: the padded data
+    """
+    pad_len = n - (len(data) % n)
+    return data + bytes([pad_len] * pad_len)
+
+
 class AES:
     def __init__(self, key: bytes, mode=CBC):
         self.mode = mode
@@ -245,6 +257,16 @@ class AES:
                 Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
         """
 
+        state = _pad_data(data)
+        return self._encrypt_single_block(state)
+
+    def _encrypt_single_block(self, data: bytes) -> tuple:
+        """
+        Performs encryption of a single block of the AES algorithm, unlike the encrypt method which will encrypt at
+        least two blocks as it adds padding
+        :param data:
+        :return:
+        """
         state = _split(list(data), 4)
         state = _add_round_key(state, self.round_keys[0])
 
