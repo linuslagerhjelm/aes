@@ -340,10 +340,38 @@ class AES:
         :return: The decrypted bytes
         """
         blocks = list(_chunk(list(data), self.block_length))
-        decrypted = b''.join([self._decrypt_single_block(block) for block in blocks])
+        decrypted = self._decrypt_CBC(blocks, iv) if self.mode == CBC else self._decrypt_ECB(blocks)
         return _unpad_data(decrypted)
 
-    def _decrypt_single_block(self, data: bytes, iv=None) -> bytes:
+    def _decrypt_CBC(self, blocks: List[bytes], iv: bytes) -> bytes:
+        """
+        Performs CBC mode decryption of the provided blocks
+        :param blocks: the blocks to decrypt
+        :param iv: the iv that were used when encrypting
+        :return: the unencrypted data
+        """
+        blocks = [iv] + blocks
+        decrypted_blocks = []
+        i = 1
+        while i < len(blocks):
+            block = blocks[-i]
+            block = self._decrypt_single_block(block)
+            block = bytes([x ^ y for x, y in zip(block, blocks[-(i + 1)])])
+
+            decrypted_blocks = [block] + decrypted_blocks
+            i += 1
+
+        return b''.join(decrypted_blocks)
+
+    def _decrypt_ECB(self, blocks: List[bytes]) -> bytes:
+        """
+        Decrypts the provided blocks using ECB mode
+        :param blocks: the blocks to decrypt
+        :return: the decrypted data
+        """
+        return b''.join([self._decrypt_single_block(block) for block in blocks])
+
+    def _decrypt_single_block(self, data: bytes) -> bytes:
         """
         Performs decryption of a single block of the AES algorithm, unlike the decrypt method which will
         assume that there are padding at the end of the last block.

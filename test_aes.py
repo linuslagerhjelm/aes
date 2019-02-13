@@ -138,15 +138,19 @@ class TestAES(TestCase):
 
     def test_encrypt_multiple_blocks_ECB(self):
         key = b'abcdefghijklmnop'
-        data = b'abcdefghijklmnop'
-        expected = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
+        data = b'abcdefghijklmnopabcdefghijklmnop'
+        expected = b"\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xb2\xf5\xf8\xce\xc6\xb2\xb7\xf7" \
+                   b"\xea\xfc\xc6-\x07Qv\xb9\xcc:\x0f\x92\x94\xb7\xc2\xe2\xad\x16I'i\xd2%\xc6"
+
         actual, _ = AES(key, ECB).encrypt(data)
         self.assertEqual(expected, actual)
 
     def test_decrypt_multiple_blocks_ECB(self):
         key = b'abcdefghijklmnop'
-        data = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
-        expected = b'abcdefghijklmnop'
+        data = b"\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xb2\xf5\xf8\xce\xc6\xb2\xb7\xf7" \
+               b"\xea\xfc\xc6-\x07Qv\xb9\xcc:\x0f\x92\x94\xb7\xc2\xe2\xad\x16I'i\xd2%\xc6"
+
+        expected = b'abcdefghijklmnopabcdefghijklmnop'
         actual = AES(key, ECB).decrypt(data)
         self.assertEqual(expected, actual)
 
@@ -156,4 +160,20 @@ class TestAES(TestCase):
         iv = b'somerandominvect'
         expected = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xec\xee\xd0+\xb5\xf1\xd3\xb4\xcf\xa2\x92j\xd2;\xcc\xf4'
         actual, _ = AES(key).encrypt(data, iv)
+        self.assertEqual(expected, actual)
+
+    def test_decrypt_single_block_CBC(self):
+        key = b'abcdefghijklmnop'
+        iv = b'somerandominvect'
+        data = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ'
+        expected = b'abcdefghijklmnop'
+        actual = AES(key)._decrypt_CBC([data], iv)
+        self.assertEqual(expected, actual)
+
+    def test_decrypt_multiple_blocks_CBC(self):
+        key = b'abcdefghijklmnop'
+        iv = b'somerandominvect'
+        data = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xec\xee\xd0+\xb5\xf1\xd3\xb4\xcf\xa2\x92j\xd2;\xcc\xf4'
+        expected = b'abcdefghijklmnop'
+        actual = AES(key).decrypt(data, iv)
         self.assertEqual(expected, actual)
