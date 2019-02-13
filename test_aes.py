@@ -173,5 +173,5 @@ class TestAES(TestCase):
         actual = AES(key).decrypt(data, iv)
         self.assertEqual(expected, actual)
 
-    # def test_assignment_data(self):
-    #     data = AES(key).encrypt(b'Introduction to Computer Security')
+    def test_assignment_data(self):
+        data = AES(key).encrypt(b'Introduction to Computer Security')

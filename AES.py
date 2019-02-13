@@ -1,5 +1,7 @@
 from typing import List, Union, Any, Generator
 from itertools import chain
+import warnings
+import os
 
 ECB = 1
 CBC = 2
@@ -263,6 +265,12 @@ def _unpad_data(data: bytes) -> bytes:
 
 class AES:
     def __init__(self, key: bytes, mode=CBC):
+        if len(key) != 16:
+            raise ValueError("Only 128 bit keys are supported!")
+
+        if mode != CBC and mode != ECB:
+            raise ValueError("Unsupported mode!")
+
         self.mode = mode
         self.num_rounds = 10
         self.block_length = 16
@@ -279,6 +287,12 @@ class AES:
         :return: a tuple where the first element is the encrypted data.
                 Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
         """
+        if self.mode == ECB and iv is not None:
+            warnings.warn("Initialization vector not used in ECB mode. Providing an IV under ECB mode "
+                          "is a no-op but it might indicate an error in you program")
+
+        if self.mode == CBC and iv is None:
+            iv = os.urandom(self.block_length)
 
         state = _pad_data(data)
         blocks = list(_chunk(list(state), self.block_length))
