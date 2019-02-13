@@ -2,6 +2,7 @@ from unittest import TestCase
 from AES import AES
 from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _pad_data, ECB
 
+key = b'abcdefghijklmnop'
 
 class TestAES(TestCase):
     def test_sunny_day_encryption(self):
@@ -130,32 +131,28 @@ class TestAES(TestCase):
         self.assertEqual(expected, actual)
 
     def test_pad_and_encrypt_single_block_ECB(self):
-        key = b'abcdefghijklmnop'
         data = b'abcdefghijklmno'
         expected = b'\xd7={E2\x9df\xf7\xfe\xb5\xa5\x97\x1c\xaex\xac'
         actual, _ = AES(key, ECB).encrypt(data)
         self.assertEqual(expected, actual)
 
     def test_encrypt_multiple_blocks_ECB(self):
-        key = b'abcdefghijklmnop'
         data = b'abcdefghijklmnopabcdefghijklmnop'
-        expected = b"\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xb2\xf5\xf8\xce\xc6\xb2\xb7\xf7" \
-                   b"\xea\xfc\xc6-\x07Qv\xb9\xcc:\x0f\x92\x94\xb7\xc2\xe2\xad\x16I'i\xd2%\xc6"
+        expected = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\xa9\x13)\xaf\x99\xa7' \
+                   b'\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
 
         actual, _ = AES(key, ECB).encrypt(data)
         self.assertEqual(expected, actual)
 
     def test_decrypt_multiple_blocks_ECB(self):
-        key = b'abcdefghijklmnop'
-        data = b"\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xb2\xf5\xf8\xce\xc6\xb2\xb7\xf7" \
-               b"\xea\xfc\xc6-\x07Qv\xb9\xcc:\x0f\x92\x94\xb7\xc2\xe2\xad\x16I'i\xd2%\xc6"
+        data = b'\xa9\x13)\xaf\x99\xa7\x8d\x02\xae\xc1|PwW\xaa\xef\xa9\x13)\xaf\x99\xa7' \
+               b'\x8d\x02\xae\xc1|PwW\xaa\xef\x8ed\xce\x87?\x17M\xbb$#\xfc\xd8\x14X\x0e\x15'
 
         expected = b'abcdefghijklmnopabcdefghijklmnop'
         actual = AES(key, ECB).decrypt(data)
         self.assertEqual(expected, actual)
 
     def test_encrypt_multiple_blocks_CBC(self):
-        key = b'abcdefghijklmnop'
         data = b'abcdefghijklmnop'
         iv = b'somerandominvect'
         expected = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xec\xee\xd0+\xb5\xf1\xd3\xb4\xcf\xa2\x92j\xd2;\xcc\xf4'
@@ -163,7 +160,6 @@ class TestAES(TestCase):
         self.assertEqual(expected, actual)
 
     def test_decrypt_single_block_CBC(self):
-        key = b'abcdefghijklmnop'
         iv = b'somerandominvect'
         data = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ'
         expected = b'abcdefghijklmnop'
@@ -171,9 +167,11 @@ class TestAES(TestCase):
         self.assertEqual(expected, actual)
 
     def test_decrypt_multiple_blocks_CBC(self):
-        key = b'abcdefghijklmnop'
         iv = b'somerandominvect'
         data = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xec\xee\xd0+\xb5\xf1\xd3\xb4\xcf\xa2\x92j\xd2;\xcc\xf4'
         expected = b'abcdefghijklmnop'
         actual = AES(key).decrypt(data, iv)
         self.assertEqual(expected, actual)
+
+    # def test_assignment_data(self):
+    #     data = AES(key).encrypt(b'Introduction to Computer Security')
