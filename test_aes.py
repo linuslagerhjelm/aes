@@ -149,3 +149,11 @@ class TestAES(TestCase):
         expected = b'abcdefghijklmnop'
         actual = AES(key, ECB).decrypt(data)
         self.assertEqual(expected, actual)
+
+    def test_encrypt_multiple_blocks_CBC(self):
+        key = b'abcdefghijklmnop'
+        data = b'abcdefghijklmnop'
+        iv = b'somerandominvect'
+        expected = b'\xc6n\x1b\xcbP\x99-4\xb8\xbc\x9c\x0fy6KQ\xec\xee\xd0+\xb5\xf1\xd3\xb4\xcf\xa2\x92j\xd2;\xcc\xf4'
+        actual, _ = AES(key).encrypt(data, iv)
+        self.assertEqual(expected, actual)

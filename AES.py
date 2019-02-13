@@ -268,12 +268,13 @@ class AES:
         self.block_length = 16
         self.round_keys = _expand_key(key, self.num_rounds)
 
-    def encrypt(self, data: bytes) -> tuple:
+    def encrypt(self, data: bytes, iv=None) -> tuple:
         """
         Encrypts a single block of data using the AES algorithm as
         described by: https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.197.pdf.
         Under CBC mode, a randomized IV is used and returned from this function along with the result of the
         encryption, it is the responsibility of the user to keep track of the IV.
+        :param iv: Optional IV to use in CBC mode. If unset, a random IV will be used
         :param data: The data to encrypt
         :return: a tuple where the first element is the encrypted data.
                 Under CBC mode, the second value is the IV used, under ECB mode, the second value is None
@@ -282,7 +283,31 @@ class AES:
         state = _pad_data(data)
         blocks = list(_chunk(list(state), self.block_length))
 
-        return b''.join([self._encrypt_single_block(block) for block in blocks]), None
+        cipher = self._encrypt_CBC(blocks, iv) if self.mode == CBC else self._encrypt_ECB(blocks)
+
+        return cipher, iv
+
+    def _encrypt_ECB(self, blocks: List[bytes]) -> bytes:
+        """
+        Performs ECB mode encryption of the provided blocks
+        :param blocks: the blocks to encrypt
+        :return: the encrypted bytes
+        """
+        return b''.join([self._encrypt_single_block(block) for block in blocks])
+
+    def _encrypt_CBC(self, blocks: List[bytes], iv: bytes) -> bytes:
+        """
+        Performs CBC mode encryption of the provided blocks
+        :param blocks: the blocks to encrypt
+        :param iv: the iv to use when encrypting
+        :return: the encrypted data
+        """
+        encrypted_blocks = [iv]
+        for block, prev in zip(blocks, encrypted_blocks):
+            next_block = bytes([x ^ y for x, y in zip(block, prev)])
+            encrypted_blocks.append(self._encrypt_single_block(next_block))
+
+        return b''.join(encrypted_blocks[1:])
 
     def _encrypt_single_block(self, data: bytes) -> bytes:
         """
