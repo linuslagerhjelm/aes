@@ -20,7 +20,7 @@ cipher_text, iv = aes.encrypt(b'Some secret message')
 plain_text = aes.decrypt(cipher_text, iv)
 ````
 
-## Planned Features
+## TODO
  - ~~128 bit keys~~
  - 192 bit keys
  - 256 bit keys
