@@ -20,10 +20,10 @@ cipher_text, iv = aes.encrypt(b'Some secret message')
 plain_text = aes.decrypt(cipher_text, iv)
 ````
 
-## Features
+## Planned Features
  - ~~128 bit keys~~
  - 192 bit keys
  - 256 bit keys
  - ~~ECB Mode~~
- - CBC Mode
+ - ~~CBC Mode~~
  - ~~PKCS7 Padding~~
