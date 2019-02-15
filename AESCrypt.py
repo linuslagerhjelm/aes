@@ -32,7 +32,13 @@ def interactive_mode(aes):
   return
 
 def decrypt_file(aes, f_in, f_out):
-  return
+  data = str.encode(get_file_content(f_in))
+  data = base64.b64decode(data)
+  iv, ciphertext = data[:16], data[16:]
+  plaintext = aes.decrypt(ciphertext, iv).decode()
+  outfile = f_in if not f_out else f_out
+  write_file(outfile, plaintext)
+
 
 def encrypt_file(aes, f_in, f_out):
   data = get_file_content(f_in)
@@ -51,7 +57,7 @@ parser = argparse.ArgumentParser(description='AESCrypt - A tool to encrypt and d
 parser.add_argument('--key', type=str, help='The key to use, exists only to allow scripting. Should be left blank if used interactively.')
 parser.add_argument('-f', type=str, help='Encrypts the content of the specified file, set the -o flag to specify a different output file.')
 parser.add_argument('-o', type=str, help='A file to put the encrypted data into.')
-parser.add_argument('-d', help='Use decrypt mode. Can be used when starting interactive mode as well')
+parser.add_argument('-d', action='store_true', help='Use decrypt mode. Can be used when starting interactive mode as well')
 
 args = parser.parse_args()
 
