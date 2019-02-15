@@ -29,7 +29,7 @@ def sigint_handler(sig, frame):
 signal.signal(signal.SIGINT, sigint_handler)
 
 def interactive_mode(aes):
-  return
+  exit("Interactive mode is currently not supported, please specify an input file")
 
 def decrypt_file(aes, f_in, f_out):
   data = str.encode(get_file_content(f_in))
