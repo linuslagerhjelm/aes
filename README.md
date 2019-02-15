@@ -4,10 +4,10 @@ A pure python implementation of AES written with the goal to resemble the
 spec (https://csrc.nist.gov/csrc/media/publications/fips/197/final/documents/fips-197.pdf) as closely as possible and still be quite pythonic.
 
 ## Security
-Do **not** use this library for anything that has to do with security. Although
-it is compliant with the spec, this is an implementation written for educational
-purposes and consequently, no measures has been taken to make the implementation
-resistant to side channel attacks etc. 
+Although it is compliant with the spec, this is an implementation written for
+educational purposes and consequently, no measures has been taken to make the 
+implementation resistant to side channel attacks etc. However it should be
+sufficient enough for non critical data. 
 
 ## Usage
 ````python
@@ -27,3 +27,45 @@ plain_text = aes.decrypt(cipher_text, iv)
  - ~~ECB Mode~~
  - ~~CBC Mode~~
  - ~~PKCS7 Padding~~
+ 
+ ## CLI
+ This project also comes with a cli tool that wraps the library for command line usage.
+ The usage of the CLI is of course as about as secure as using the library code directly,
+ apart from that the CLI makes use of reasonable configurations and thus provides some
+ guarantees about security. It should be sufficient for encryption of non critical 
+ files locally.
+ 
+ ### Usage
+ Following is the help output from the CLI:
+ ````bash
+ usage: AESCrypt.py [-h] [--key KEY] [-f F] [-o O] [-d]
+
+AESCrypt - A tool to encrypt and decrypt data using the AES algorithm.
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --key KEY   The key to use, exists only to allow scripting. Should be left
+              blank if used interactively.
+  -f F        Encrypts or decrypts the content of the specified file, set the -o flag to
+              specify a different output file.
+  -o O        A file to put the output into.
+  -d          Use decrypt mode. Can be used when starting interactive mode as
+              well
+````
+
+For example: to encrypt the file `test.txt`:
+````bash
+./AESCrypt.py  -f test.txt
+````
+
+And to decrypt the same file:
+````bash
+./AESCrypt.py  -df test.txt
+````
+
+### TODO (CLI)
+CLI specific things, yet to be implemented:
+
+- Add a KDF so that the user can use any password
+- Implement interactive mode
+- IO to/from stdin/stdout to allow piping  
