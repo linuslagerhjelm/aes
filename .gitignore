@@ -3,4 +3,5 @@ venv
 .DS_Store
 __pycache__
 test.txt
+test_dec.txt
 test_enc.txt
