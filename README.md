@@ -16,20 +16,21 @@ sufficient enough for non critical data.
 import os
 from AES import AES
 
-key = os.urandom(16)
+key = os.urandom(32)
 aes = AES(key)
 cipher_text, iv = aes.encrypt(b'Some secret message')
 plain_text = aes.decrypt(cipher_text, iv)
 ````
 
-## TODO
+## Features
+The library supports the following key sizes/modes/operations:
 
-- ~~128 bit keys~~
-- ~~192 bit keys~~
+- 128 bit keys
+- 192 bit keys
 - 256 bit keys
-- ~~ECB Mode~~
-- ~~CBC Mode~~
-- ~~PKCS7 Padding~~
+- ECB Mode
+- CBC Mode
+- PKCS7 Padding
 
 ## CLI
 
@@ -73,12 +74,11 @@ And to decrypt the same file:
 ### Configuration
 In order to provide maximal security, this tool uses some configurations that 
 could be of interest to state here to allow for external evaluation/validation
-of its security. It uses the largest key size supported by the library, which
-currently is 128 bits. It encrypts everything using CBC mode with a new 
-cryptographically secure IV for each encryption. Furthermore, it uses a key
-derivation function, PBKDF2 (SHA-512) to map user passwords into strong keys to
-be used for encryption. Each key is generated using a salt from 64
-cryptographically secure random bits. 
+of its security. It uses the largest possible key sizes namely 256 bits. 
+It encrypts everything using CBC mode with a new  cryptographically secure IV 
+for each encryption. Furthermore, it uses a key derivation function, 
+PBKDF2 (SHA-512) to map user passwords into strong keys to be used for encryption.
+Each key is generated using a salt from 64 cryptographically secure random bits. 
 
 ### TODO (CLI)
 
