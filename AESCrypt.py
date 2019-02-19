@@ -18,7 +18,7 @@ def error(msg): sys.exit(msg)
 
 def get_file_content(filename):
     try:
-        with open(filename) as f:
+        with open(filename, 'rb') as f:
             return f.read()
     except IOError:
         error('Unable to open the specified file')
@@ -26,7 +26,7 @@ def get_file_content(filename):
 
 def write_file(filename, content):
     try:
-        with open(filename, 'w+') as f:
+        with open(filename, 'wb+') as f:
             f.write(content)
     except IOError:
         error('Unable to write to file')
@@ -58,17 +58,17 @@ def interactive_mode(aes):
 def decrypt(data, password):
     data = base64.b64decode(data)
     salt, iv, ciphertext = data[:SALT_LEN], data[SALT_LEN:SALT_LEN + BLOCK_LEN], data[SALT_LEN+BLOCK_LEN:]
-    return AES(derive_key(password.encode(), salt)).decrypt(ciphertext, iv).decode()
+    return AES(derive_key(password.encode(), salt)).decrypt(ciphertext, iv)
 
 
 def encrypt(data, password):
     salt = os.urandom(64)
     ciphertext, iv = AES(derive_key(password.encode(), salt)).encrypt(data)
-    return base64.b64encode(salt + iv + ciphertext).decode()
+    return base64.b64encode(salt + iv + ciphertext)
 
 
 def file_mode(password, args):
-    data = str.encode(get_file_content(args.f))
+    data = get_file_content(args.f)
     if args.d:
         res = decrypt(data, password)
     else:
