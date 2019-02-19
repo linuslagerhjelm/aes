@@ -1,6 +1,6 @@
 from unittest import TestCase
 from AES import AES
-from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _pad_data, ECB
+from AES import _g, _sub_bytes, S_box, _shift_rows, _add_round_key, _expand_key, _expand_key_192, _pad_data, _chunk, ECB
 
 key = b'abcdefghijklmnop'
 
@@ -18,6 +18,35 @@ class TestAES(TestCase):
         expected = bytes(bytearray.fromhex('69c4e0d86a7b0430d8cdb78070b4c55a'))
         actual = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
+
+    def test_encrypt_192_bit_key(self):
+        data = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
+        key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f1011121314151617'))
+        expected = bytes(bytearray.fromhex('dda97ca4864cdfe06eaf70a0ec0d7191'))
+        actual = AES(key)._encrypt_single_block(data)
+        self.assertEqual(expected, actual)
+
+    def test_expand_key_192_bit(self):
+        key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f1011121314151617'))
+        expected = [
+            '000102030405060708090a0b0c0d0e0f',
+            '10111213141516175846f2f95c43f4fe',
+            '544afef55847f0fa4856e2e95c43f4fe',
+            '40f949b31cbabd4d48f043b810b7b342',
+            '58e151ab04a2a5557effb5416245080c',
+            '2ab54bb43a02f8f662e3a95d66410c08',
+            'f501857297448d7ebdf1c6ca87f33e3c',
+            'e510976183519b6934157c9ea351f1e0',
+            '1ea0372a995309167c439e77ff12051e',
+            'dd7e0e887e2fff68608fc842f9dcc154',
+            '859f5f237a8d5a3dc0c02952beefd63a',
+            'de601e7827bcdf2ca223800fd8aeda32',
+            'a4970a331a78dc09c418c271e3a41d5d'
+        ]
+        expected = [list(map(list, _chunk(bytes(bytearray.fromhex(exp)), 4))) for exp in expected]
+        actual = _expand_key_192(key, 24)
+        for exp, act in zip(expected, actual):
+            self.assertEqual(exp, list(act))
 
     def test_sunny_day_decryption(self):
         data = bytes([0x29, 0xC3, 0x50, 0x5F, 0x57, 0x14, 0x20, 0xF6, 0x40, 0x22, 0x99, 0xB3, 0x1A, 0x02, 0xD7, 0x3A])

@@ -109,6 +109,32 @@ def _expand_key(key: bytes, n: int) -> List[Union[List[List[int]], List[list]]]:
     return round_keys
 
 
+def _expand_key_192(key: bytes, n: int) -> List[Union[List[List[int]], List[list]]]:
+    w = []
+    nk = 6
+    nb = 4
+    nr = 12
+    for i in range(nk):
+        w.append([key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]])
+
+    for i in range(nk, (nb * (nr + 1))):
+        tmp = w[i - 1]
+        if i % nk == 0:
+            tmp = _g(tmp, Rcon[int(i/nk) - 1])
+        elif nk > nk and i % nk == nb:
+            tmp = _sub_bytes(tmp, S_box)
+        w.append([x ^ y for x, y in zip(w[i - nk], tmp)])
+    return list(zip(*[iter(w)] * nb))
+
+# wi, wi1, wi2, wi3, wi4, wi5 = round_keys[i]
+        # wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
+        # wi5 = [a ^ b for a, b in zip(wi4, wi1)]
+        # wi6 = [a ^ b for a, b in zip(wi5, wi2)]
+        # wi7 = [a ^ b for a, b in zip(wi6, wi3)]
+        # wi8 = [a ^ b for a, b in zip(wi7, wi4)]
+        # wi9 = [a ^ b for a, b in zip(wi7, wi5)]
+        # round_keys.append([wi4, wi5, wi6, wi7, wi8, wi9])
+
 def __sub_byte(b: int, box: List[List[bytes]]) -> bytes:
     """
     Performs the substitution from one byte to another from the provided S-box
@@ -265,16 +291,16 @@ def _unpad_data(data: bytes) -> bytes:
 
 class AES:
     def __init__(self, key: bytes, mode=CBC):
-        if len(key) != 16:
-            raise ValueError("Only 128 bit keys are supported!")
+        if len(key) != 16 and len(key) != 24:
+            raise ValueError("Only 128 and 192 bit keys are supported!")
 
         if mode != CBC and mode != ECB:
             raise ValueError("Unsupported mode!")
 
         self.mode = mode
-        self.num_rounds = 10
+        self.num_rounds = 10 if len(key) == 16 else 12
         self.block_length = 16
-        self.round_keys = _expand_key(key, self.num_rounds)
+        self.round_keys = _expand_key(key, self.num_rounds) if len(key) == 16 else _expand_key_192(key, self.num_rounds)
 
     def encrypt(self, data: bytes, iv=None) -> tuple:
         """
