@@ -25,7 +25,7 @@ plain_text = aes.decrypt(cipher_text, iv)
 ## TODO
 
 - ~~128 bit keys~~
-- 192 bit keys
+- ~~192 bit keys~~
 - 256 bit keys
 - ~~ECB Mode~~
 - ~~CBC Mode~~
