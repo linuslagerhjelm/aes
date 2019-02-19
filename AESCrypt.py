@@ -46,29 +46,26 @@ signal.signal(signal.SIGINT, sigint_handler)
 def interactive_mode(aes):
   exit("Interactive mode is currently not supported, please specify an input file")
 
-def decrypt_file(password, f_in, f_out):
-  data = str.encode(get_file_content(f_in))
+def decrypt(data, password):
   data = base64.b64decode(data)
   salt, iv, ciphertext = data[:SALT_LEN], data[SALT_LEN:SALT_LEN + BLOCK_LEN], data[SALT_LEN+BLOCK_LEN:]
-  plaintext = AES(derive_key(password.encode(), salt)).decrypt(ciphertext, iv).decode()
-  outfile = f_in if not f_out else f_out
-  write_file(outfile, plaintext)
+  return AES(derive_key(password.encode(), salt)).decrypt(ciphertext, iv).decode()
 
 
-def encrypt_file(password, f_in, f_out):
+def encrypt(data, password):
   salt = os.urandom(64)
-  key = derive_key(password.encode(), salt)
-  data = get_file_content(f_in)
-  ciphertext, iv = AES(key).encrypt(str.encode(data))
-  res = base64.b64encode(salt + iv + ciphertext).decode()
-  outfile = f_in if not f_out else f_out
-  write_file(outfile, res)
+  ciphertext, iv = AES(derive_key(password.encode(), salt)).encrypt(data)
+  return base64.b64encode(salt + iv + ciphertext).decode()
+
 
 def file_mode(password, args):
+  data = str.encode(get_file_content(args.f))
   if args.d:
-    decrypt_file(password, args.f, args.o)
+    res = decrypt(data, password)
   else:
-    encrypt_file(password, args.f, args.o)
+    res = encrypt(data, password)
+  outfile = args.f if not args.o else args.o
+  write_file(outfile, res)
 
 parser = argparse.ArgumentParser(description='AESCrypt - A tool to encrypt and decrypt data using the AES algorithm.')
 parser.add_argument('--passwd', type=str, help='The password to use, exists only to allow scripting. Should be left blank if used interactively.')
