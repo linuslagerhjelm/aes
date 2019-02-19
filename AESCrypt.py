@@ -11,6 +11,7 @@ from AES import AES
 
 SALT_LEN = 64
 BLOCK_LEN = 16
+KEY_LEN = 24
 
 
 def error(msg): sys.exit(msg)
@@ -38,7 +39,7 @@ def derive_key(password: bytes, salt: bytes) -> bytes:
         password=password,
         salt=salt,
         iterations=100000,
-        dklen=BLOCK_LEN
+        dklen=KEY_LEN
     )
     return key
 
