@@ -11,7 +11,7 @@ from AES import AES
 
 SALT_LEN = 64
 BLOCK_LEN = 16
-KEY_LEN = 24
+KEY_LEN = 32
 
 
 def error(msg): sys.exit(msg)
