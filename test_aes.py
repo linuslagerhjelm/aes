@@ -26,6 +26,13 @@ class TestAES(TestCase):
         actual = AES(key)._encrypt_single_block(data)
         self.assertEqual(expected, actual)
 
+    def test_encrypt_256_bit_key(self):
+        data = bytes(bytearray.fromhex('00112233445566778899aabbccddeeff'))
+        key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f'))
+        expected = bytes(bytearray.fromhex('8ea2b7ca516745bfeafc49904b496089'))
+        actual = AES(key)._encrypt_single_block(data)
+        self.assertEqual(expected, actual)
+
     def test_expand_key_192_bit(self):
         key = bytes(bytearray.fromhex('000102030405060708090a0b0c0d0e0f1011121314151617'))
         expected = [

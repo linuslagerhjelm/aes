@@ -245,19 +245,22 @@ def _unpad_data(data: bytes) -> bytes:
     return data[:-data[-1]]
 
 
+NUM_ROUNDS = {16: 10, 24: 12, 32: 14}
+NUM_WORDS = {16: 4, 24: 6, 32: 8}
+
+
 class AES:
     def __init__(self, key: bytes, mode=CBC):
-        if len(key) != 16 and len(key) != 24:
-            raise ValueError("Only 128 and 192 bit keys are supported!")
+        if len(key) not in NUM_ROUNDS:
+            raise ValueError("Only 128, 192 and 256 bit keys are supported!")
 
         if mode != CBC and mode != ECB:
             raise ValueError("Unsupported mode!")
 
         self.nb = 4
-        self.nk = 6 if len(key) == 24 else 4
-        self.nr = 12 if len(key) == 24 else 10
+        self.nk = NUM_WORDS[len(key)]
+        self.nr = NUM_ROUNDS[len(key)]
         self.mode = mode
-        self.num_rounds = 10 if len(key) == 16 else 12
         self.block_length = 16
         self.round_keys = self._expand_key(key)
 
@@ -277,7 +280,7 @@ class AES:
             if i % self.nk == 0:
                 tmp = _g(tmp, Rcon[int(i / self.nk) - 1])
             elif self.nk > 6 and i % self.nk == self.nb:
-                tmp = _sub_bytes(tmp, S_box)
+                tmp = _sub_bytes([tmp], S_box)[0]
             w.append([x ^ y for x, y in zip(w[i - self.nk], tmp)])
         return list(zip(*[iter(w)] * self.nb))
 
@@ -338,7 +341,7 @@ class AES:
         state = _split(list(data), 4)
         state = _add_round_key(state, self.round_keys[0])
 
-        for i in range(1, self.num_rounds):
+        for i in range(1, self.nr):
             state = _round(state, self.round_keys[i])
 
         state = _sub_bytes(state, S_box)
@@ -400,7 +403,7 @@ class AES:
         state = _split(list(data), 4)
         state = _add_round_key(state, self.round_keys[-1])
 
-        for i in range(self.num_rounds - 1, 0, -1):
+        for i in range(self.nr - 1, 0, -1):
             state = _inv_round(state, self.round_keys[i])
 
         state = _inv_shift_rows(state)
