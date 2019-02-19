@@ -1,4 +1,4 @@
-from typing import List, Union, Any, Generator
+from typing import List, Union, Tuple, Any, Generator
 from itertools import chain
 import warnings
 import os
@@ -90,50 +90,6 @@ def _g(block: List[int], rc: bytes) -> List[bytes]:
     block = [__sub_byte(b, S_box) for b in block[1:] + [block[0]]]
     return [block[0] ^ rc] + block[1:]
 
-
-def _expand_key(key: bytes, n: int) -> List[Union[List[List[int]], List[list]]]:
-    """
-    Performs operations to expand the key into n round keys
-    :param key: the original key
-    :param n: number of rounds to expand the key to
-    :return: list containing the expanded keys
-    """
-    round_keys = [_split(list(key), 4)]
-    for i in range(n):
-        wi, wi1, wi2, wi3 = round_keys[i]
-        wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
-        wi5 = [a ^ b for a, b in zip(wi4, wi1)]
-        wi6 = [a ^ b for a, b in zip(wi5, wi2)]
-        wi7 = [a ^ b for a, b in zip(wi6, wi3)]
-        round_keys.append([wi4, wi5, wi6, wi7])
-    return round_keys
-
-
-def _expand_key_192(key: bytes, n: int) -> List[Union[List[List[int]], List[list]]]:
-    w = []
-    nk = 6
-    nb = 4
-    nr = 12
-    for i in range(nk):
-        w.append([key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]])
-
-    for i in range(nk, (nb * (nr + 1))):
-        tmp = w[i - 1]
-        if i % nk == 0:
-            tmp = _g(tmp, Rcon[int(i/nk) - 1])
-        elif nk > nk and i % nk == nb:
-            tmp = _sub_bytes(tmp, S_box)
-        w.append([x ^ y for x, y in zip(w[i - nk], tmp)])
-    return list(zip(*[iter(w)] * nb))
-
-# wi, wi1, wi2, wi3, wi4, wi5 = round_keys[i]
-        # wi4 = [a ^ b for a, b in zip(wi, _g(wi3, Rcon[i]))]
-        # wi5 = [a ^ b for a, b in zip(wi4, wi1)]
-        # wi6 = [a ^ b for a, b in zip(wi5, wi2)]
-        # wi7 = [a ^ b for a, b in zip(wi6, wi3)]
-        # wi8 = [a ^ b for a, b in zip(wi7, wi4)]
-        # wi9 = [a ^ b for a, b in zip(wi7, wi5)]
-        # round_keys.append([wi4, wi5, wi6, wi7, wi8, wi9])
 
 def __sub_byte(b: int, box: List[List[bytes]]) -> bytes:
     """
@@ -297,10 +253,33 @@ class AES:
         if mode != CBC and mode != ECB:
             raise ValueError("Unsupported mode!")
 
+        self.nb = 4
+        self.nk = 6 if len(key) == 24 else 4
+        self.nr = 12 if len(key) == 24 else 10
         self.mode = mode
         self.num_rounds = 10 if len(key) == 16 else 12
         self.block_length = 16
-        self.round_keys = _expand_key(key, self.num_rounds) if len(key) == 16 else _expand_key_192(key, self.num_rounds)
+        self.round_keys = self._expand_key(key)
+
+    def _expand_key(self, key: bytes) -> List[Tuple[Any]]:
+        """
+        Performs operations to expand the key into the respective round keys.
+        Uses class fields to determine how many keys to produce.
+        :param key: the original key
+        :return: list containing the expanded keys
+        """
+        w = []
+        for i in range(self.nk):
+            w.append([key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]])
+
+        for i in range(self.nk, (self.nb * (self.nr + 1))):
+            tmp = w[i - 1]
+            if i % self.nk == 0:
+                tmp = _g(tmp, Rcon[int(i / self.nk) - 1])
+            elif self.nk > 6 and i % self.nk == self.nb:
+                tmp = _sub_bytes(tmp, S_box)
+            w.append([x ^ y for x, y in zip(w[i - self.nk], tmp)])
+        return list(zip(*[iter(w)] * self.nb))
 
     def encrypt(self, data: bytes, iv=None) -> tuple:
         """
