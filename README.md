@@ -34,7 +34,7 @@ plain_text = aes.decrypt(cipher_text, iv)
 ## CLI
 
 This project also comes with a cli tool that wraps the library for command line usage.
-The usage of the CLI is of course as about as secure as using the library code directly,
+The usage of the CLI is of course about as secure as using the library code directly,
 apart from that the CLI makes use of reasonable configurations and thus provides some
 guarantees about security. It should be sufficient for encryption of non critical files locally.
  
