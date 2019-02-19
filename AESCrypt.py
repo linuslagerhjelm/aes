@@ -8,6 +8,9 @@ import base64
 import hashlib
 from AES import AES
 
+
+SALT_LEN = 64
+BLOCK_LEN = 16
 error = lambda msg: sys.exit(msg)
 
 def get_file_content(filename):
@@ -24,16 +27,15 @@ def write_file(filename, content):
   except IOError:
     error('Unable to write to file')
 
-def derive_key(password: str, salt: bytes) -> tuple:
-  key = hashlib.scrypt(
+def derive_key(password: bytes, salt: bytes) -> bytes:
+  key = hashlib.pbkdf2_hmac(
+    hash_name='sha512',
     password=password,
     salt=salt,
-    n=1<<17,
-    r=8,
-    p=1,
-    dklen=16
+    iterations=100000,
+    dklen=BLOCK_LEN
   )
-  return key, salt
+  return key
 
 def sigint_handler(sig, frame):
   print("\r" + (' ' * 80) + "\rGood bye ☺️")
@@ -47,14 +49,15 @@ def interactive_mode(aes):
 def decrypt_file(password, f_in, f_out):
   data = str.encode(get_file_content(f_in))
   data = base64.b64decode(data)
-  salt, iv, ciphertext = data[:16], data[16:32], data[16:]
-  plaintext = AES(derive_key(password, salt)).decrypt(ciphertext, iv).decode()
+  salt, iv, ciphertext = data[:SALT_LEN], data[SALT_LEN:SALT_LEN + BLOCK_LEN], data[SALT_LEN+BLOCK_LEN:]
+  plaintext = AES(derive_key(password.encode(), salt)).decrypt(ciphertext, iv).decode()
   outfile = f_in if not f_out else f_out
   write_file(outfile, plaintext)
 
 
 def encrypt_file(password, f_in, f_out):
-  key, salt = derive_key(password, os.urandom(64))
+  salt = os.urandom(64)
+  key = derive_key(password.encode(), salt)
   data = get_file_content(f_in)
   ciphertext, iv = AES(key).encrypt(str.encode(data))
   res = base64.b64encode(salt + iv + ciphertext).decode()
