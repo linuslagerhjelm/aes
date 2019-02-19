@@ -1,14 +1,23 @@
 # AES
 
 A pure python implementation of AES written with the goal to resemble the 
-spec (https://csrc.nist.gov/csrc/media/publications/fips/197/final/documents/fips-197.pdf) as closely as possible and still be quite pythonic.
+[spec](https://csrc.nist.gov/csrc/media/publications/fips/197/final/documents/fips-197.pdf) as closely as possible and still be quite pythonic.
 
 ## Security
 
-Although it is compliant with the spec, this is an implementation written for
-educational purposes and consequently, no measures has been taken to make the 
-implementation resistant to side channel attacks etc. However it should be
-sufficient enough for non critical data. 
+This library is completely compliant with the AES spec and, if configured correctly,
+provides cryptography that is secure enough for information up to TOP SECRET
+level as per [recommendation](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#Security) 
+from the U.S. Government. 
+
+Two things to note about this version of the implementation is that it is
+potentially susceptible to [cache timing](https://cr.yp.to/antiforgery/cachetiming-20050414.pdf)
+attacks and does not use [authenticated encryption](https://cr.yp.to/antiforgery/cachetiming-20050414.pdf).
+
+These issues are intended to be addressed in future versions of the code but for
+the moment, if your threat model include _side channel_ attacks or your application
+need to send encrypted data over the network, other libraries may be a better fit.
+
 
 ## Usage
 
@@ -34,10 +43,10 @@ The library supports the following key sizes/modes/operations:
 
 ## CLI
 
-This project also comes with a cli tool that wraps the library for command line usage.
+This project comes with a cli tool that wraps the library for command line usage.
 The usage of the CLI is of course about as secure as using the library code directly,
-apart from that the CLI makes use of reasonable configurations and thus provides some
-guarantees about security. It should be sufficient for encryption of non critical files locally.
+apart from that the CLI implements a cryptographic schema that uses the most
+secure configuration possible of the library.
  
 ### Usage
 
