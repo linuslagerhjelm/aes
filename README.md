@@ -70,10 +70,21 @@ And to decrypt the same file:
 ./AESCrypt.py  -df test.txt
 ````
 
+### Configuration
+In order to provide maximal security, this tool uses some configurations that 
+could be of interest to state here to allow for external evaluation/validation
+of its security. It uses the largest key size supported by the library, which
+currently is 128 bits. It encrypts everything using CBC mode with a new 
+cryptographically secure IV for each encryption. Furthermore, it uses a key
+derivation function, PBKDF2 (SHA-512) to map user passwords into strong keys to
+be used for encryption. Each key is generated using a salt from 64
+cryptographically secure random bits. 
+
 ### TODO (CLI)
 
 CLI specific things, yet to be implemented:
 
-- Add a KDF so that the user can use any password
+- ~~Add a KDF so that the user can use any password~~
 - Implement interactive mode
-- IO to/from stdin/stdout to allow piping  
+- IO to/from stdin/stdout to allow piping
+- Update KDF to scrypt
