@@ -56,7 +56,7 @@ Rcon = (
 )
 
 
-def xtime(a): (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
+def xtime(a): return (((a << 1) ^ 0x1B) & 0xFF) if (a & 0x80) else (a << 1)
 
 
 def _split(a: List[bytes], n: int) -> List[List[bytes]]:
